@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VEROXN | Code Hosting Platform</title>
+    <!-- Tailwind CSS for layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/lua/lua.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-dark: #000000;
+            --bg-card: #0a0a0a;
+            --accent: #ffffff;
+            --border: #333333;
+            --text-muted: #888888;
+            --gradient-primary: linear-gradient(135deg, #ffffff 0%, #a1a1a1 100%);
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--accent);
+            font-family: 'Inter', 'Arial', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: black;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .repo-card {
+            border: 1px solid var(--border);
+            transition: border-color 0.3s ease;
+        }
+
+        .repo-card:hover {
+            border-color: #666;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        /* Modal Animation */
+        .modal-enter { animation: modalFadeIn 0.3s ease forwards; }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .CodeMirror {
+            height: calc(100vh - 200px);
+            font-size: 14px;
+            background: #0a0a0a !important;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .desktop-only { display: none; }
+            .mobile-menu { display: flex; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="border-b border-[#333] py-4 px-6 flex justify-between items-center sticky top-0 bg-black z-50">
+        <div class="flex items-center gap-4">
+            <div class="text-2xl font-bold tracking-tighter flex items-center gap-2">
+                <div class="w-8 h-8 bg-white rounded-md flex items-center justify-center text-black">V</div>
+                VEROXN
+            </div>
+            <div class="hidden md:flex gap-6 text-sm text-[#888] mr-8">
+                <a href="#" onclick="showDashboard()" class="hover:text-white transition">Dashboard</a>
+                <a href="#" class="hover:text-white transition">Explore</a>
+                <a href="#" class="hover:text-white transition">Solutions</a>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="openModal('newRepoModal')" class="btn-primary px-4 py-1.5 rounded-md text-sm">New Project</button>
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-400 border border-gray-600"></div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="app-content" class="flex-grow container mx-auto px-4 py-8">
+        <!-- Dashboard View -->
+        <div id="dashboard-view">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">Repositories</h1>
+                    <p class="text-[#888]">Manage your projects and code deployments.</p>
+                </div>
+                <div class="relative">
+                    <input type="text" placeholder="Search repositories..." class="bg-transparent border border-[#333] rounded-md px-4 py-2 text-sm w-64 focus:outline-none focus:border-white transition">
+                </div>
+            </div>
+            <div id="repo-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Repos will be injected here -->
+            </div>
+        </div>
+
+        <!-- Repo Detail View (Hidden by default) -->
+        <div id="repo-view" class="hidden">
+            <div class="flex items-center gap-2 text-sm text-[#888] mb-4">
+                <span class="cursor-pointer hover:text-white" onclick="showDashboard()">Dashboard</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                <span id="current-repo-name" class="text-white font-medium"></span>
+            </div>
+
+            <div class="flex border-b border-[#333] mb-6 gap-8 text-sm">
+                <button onclick="switchTab('code')" id="tab-code" class="pb-4 border-b-2 border-white text-white">Code</button>
+                <button onclick="switchTab('pages')" id="tab-pages" class="pb-4 border-b-2 border-transparent text-[#888] hover:text-white">Pages</button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="pb-4 border-b-2 border-transparent text-[#888] hover:text-white">Settings</button>
+            </div>
+
+            <div id="tab-content-code">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex gap-2">
+                        <button onclick="openModal('newFileModal')" class="bg-[#111] border border-[#333] px-3 py-1.5 rounded-md text-sm flex items-center gap-2 hover:bg-[#1a1a1a]">
+                            <i data-lucide="plus" class="w-4 h-4"></i> New File
+                        </button>
+                    </div>
+                </div>
+                <div class="glass rounded-lg overflow-hidden">
+                    <div id="file-list" class="divide-y divide-[#333]">
+                        <!-- Files will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-content-pages" class="hidden">
+                <div class="max-w-2xl mx-auto py-12 text-center">
+                    <i data-lucide="globe" class="w-12 h-12 mx-auto mb-4 text-[#888]"></i>
+                    <h2 class="text-2xl font-bold mb-2">VEROXN Pages</h2>
+                    <p class="text-[#888] mb-8">Deploy your static site directly from your repository.</p>
+                    
+                    <div class="glass p-6 rounded-xl text-right">
+                        <label class="block text-sm font-medium mb-2">Source Branch / Directory</label>
+                        <select id="pages-source" class="w-full bg-black border border-[#333] rounded-md p-2 mb-6 focus:outline-none">
+                            <option value="/">Root ( / )</option>
+                            <option value="/docs">Docs ( /docs )</option>
+                        </select>
+                        <button onclick="deployPages()" id="deploy-btn" class="btn-primary w-full py-2 rounded-md">Save & Deploy</button>
+                        
+                        <div id="deploy-status" class="hidden mt-6">
+                            <div class="w-full bg-[#111] h-1 rounded-full overflow-hidden mb-4">
+                                <div id="deploy-progress" class="bg-white h-full w-0 transition-all duration-1000"></div>
+                            </div>
+                            <p id="deploy-link" class="text-sm text-green-400"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-content-editor" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-4">
+                        <button onclick="switchTab('code')" class="text-[#888] hover:text-white"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                        <span id="editing-file-name" class="font-mono text-sm"></span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="copyRawLink()" class="bg-[#111] border border-[#333] px-3 py-1.5 rounded-md text-sm flex items-center gap-2 hover:bg-[#1a1a1a]">
+                            <i data-lucide="link" class="w-4 h-4"></i> Raw Link
+                        </button>
+                        <button onclick="saveFile()" class="btn-primary px-4 py-1.5 rounded-md text-sm">Save Changes</button>
+                    </div>
+                </div>
+                <div class="border border-[#333] rounded-lg overflow-hidden">
+                    <textarea id="editor-textarea"></textarea>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <!-- New Repo Modal -->
+        <div id="newRepoModal" class="glass w-full max-w-md p-6 rounded-2xl modal-enter hidden">
+            <h3 class="text-xl font-bold mb-4">Create New Repository</h3>
+            <input type="text" id="new-repo-input" placeholder="repository-name" class="w-full bg-black border border-[#333] rounded-md p-3 mb-6 focus:outline-none focus:border-white transition">
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeModal()" class="px-4 py-2 text-[#888] hover:text-white">Cancel</button>
+                <button onclick="createRepo()" class="btn-primary px-6 py-2 rounded-md">Create</button>
+            </div>
+        </div>
+
+        <!-- New File Modal -->
+        <div id="newFileModal" class="glass w-full max-w-md p-6 rounded-2xl modal-enter hidden">
+            <h3 class="text-xl font-bold mb-4">Create New File</h3>
+            <input type="text" id="new-file-input" placeholder="index.html" class="w-full bg-black border border-[#333] rounded-md p-3 mb-6 focus:outline-none focus:border-white transition">
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeModal()" class="px-4 py-2 text-[#888] hover:text-white">Cancel</button>
+                <button onclick="createFile()" class="btn-primary px-6 py-2 rounded-md">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentRepo = null;
+        let currentPath = '';
+        let editor = null;
+        let editingFile = null;
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Initialize CodeMirror
+        editor = CodeMirror.fromTextArea(document.getElementById('editor-textarea'), {
+            lineNumbers: true,
+            theme: 'dracula',
+            mode: 'javascript',
+            tabSize: 4,
+            indentUnit: 4,
+            lineWrapping: true
+        });
+
+        // --- Navigation ---
+        function showDashboard() {
+            document.getElementById('dashboard-view').classList.remove('hidden');
+            document.getElementById('repo-view').classList.add('hidden');
+            loadRepos();
+        }
+
+        function showRepo(name) {
+            currentRepo = name;
+            currentPath = '';
+            document.getElementById('dashboard-view').classList.add('hidden');
+            document.getElementById('repo-view').classList.remove('hidden');
+            document.getElementById('current-repo-name').innerText = name;
+            switchTab('code');
+            loadFiles();
+        }
+
+        function switchTab(tab) {
+            const tabs = ['code', 'pages', 'settings', 'editor'];
+            tabs.forEach(t => {
+                const content = document.getElementById(`tab-content-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if (content) content.classList.add('hidden');
+                if (btn) {
+                    btn.classList.remove('border-white', 'text-white');
+                    btn.classList.add('border-transparent', 'text-[#888]');
+                }
+            });
+
+            const activeContent = document.getElementById(`tab-content-${tab}`);
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            if (activeContent) activeContent.classList.remove('hidden');
+            if (activeBtn) {
+                activeBtn.classList.remove('border-transparent', 'text-[#888]');
+                activeBtn.classList.add('border-white', 'text-white');
+            }
+        }
+
+        // --- API Calls ---
+        async function loadRepos() {
+            const res = await fetch('/api/repos');
+            const repos = await res.json();
+            const list = document.getElementById('repo-list');
+            list.innerHTML = repos.map(repo => `
+                <div onclick="showRepo('${repo.name}')" class="repo-card glass p-5 rounded-xl cursor-pointer group">
+                    <div class="flex justify-between items-start mb-4">
+                        <i data-lucide="folder" class="w-6 h-6 text-[#888] group-hover:text-white transition"></i>
+                        <span class="text-[10px] text-[#555] uppercase tracking-widest">Public</span>
+                    </div>
+                    <h3 class="font-bold text-lg mb-1">${repo.name}</h3>
+                    <p class="text-xs text-[#555]">Updated ${new Date(repo.updatedAt).toLocaleDateString()}</p>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        async function createRepo() {
+            const name = document.getElementById('new-repo-input').value;
+            if (!name) return;
+            const res = await fetch('/api/repos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                closeModal();
+                loadRepos();
+            } else {
+                const data = await res.json();
+                alert(data.error);
+            }
+        }
+
+        async function loadFiles() {
+            const res = await fetch(`/api/repos/${currentRepo}/files?path=${currentPath}`);
+            const files = await res.json();
+            const list = document.getElementById('file-list');
+            
+            list.innerHTML = files.map(file => {
+                const icon = getFileIcon(file.name, file.isDirectory);
+                return `
+                    <div onclick="${file.isDirectory ? `enterDir('${file.name}')` : `openFile('${file.name}')`}" class="flex items-center justify-between p-4 hover:bg-white/5 cursor-pointer transition group">
+                        <div class="flex items-center gap-3">
+                            <img src="${icon}" class="w-5 h-5 object-contain" onerror="this.src='https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg'">
+                            <span class="text-sm ${file.isDirectory ? 'text-blue-400' : 'text-[#ccc]'}">${file.name}</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="text-xs text-[#555]">${file.isDirectory ? '--' : formatSize(file.size)}</span>
+                            <button onclick="event.stopPropagation(); deleteItem('${file.name}')" class="opacity-0 group-hover:opacity-100 text-red-500/50 hover:text-red-500 transition">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            if (files.length === 0) {
+                list.innerHTML = '<div class="p-8 text-center text-[#555] text-sm">This repository is empty.</div>';
+            }
+            lucide.createIcons();
+        }
+
+        async function openFile(name) {
+            editingFile = name;
+            const res = await fetch(`/api/repos/${currentRepo}/raw?path=${currentPath}${name}`);
+            const content = await res.text();
+            
+            document.getElementById('editing-file-name').innerText = name;
+            switchTab('editor');
+            
+            const mode = getEditorMode(name);
+            editor.setOption('mode', mode);
+            editor.setValue(content);
+            setTimeout(() => editor.refresh(), 10);
+        }
+
+        async function saveFile() {
+            const content = editor.getValue();
+            const res = await fetch(`/api/repos/${currentRepo}/files`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filePath: currentPath + editingFile, content })
+            });
+            if (res.ok) {
+                switchTab('code');
+                loadFiles();
+            }
+        }
+
+        async function createFile() {
+            const name = document.getElementById('new-file-input').value;
+            if (!name) return;
+            const res = await fetch(`/api/repos/${currentRepo}/files`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filePath: currentPath + name, content: '' })
+            });
+            if (res.ok) {
+                closeModal();
+                loadFiles();
+            }
+        }
+
+        async function deleteItem(name) {
+            if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+            const res = await fetch(`/api/repos/${currentRepo}?path=${currentPath}${name}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) loadFiles();
+        }
+
+        function deployPages() {
+            const btn = document.getElementById('deploy-btn');
+            const status = document.getElementById('deploy-status');
+            const progress = document.getElementById('deploy-progress');
+            const link = document.getElementById('deploy-link');
+
+            btn.disabled = true;
+            btn.innerText = 'Building...';
+            status.classList.remove('hidden');
+            progress.style.width = '0%';
+            
+            setTimeout(() => {
+                progress.style.width = '100%';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerText = 'Save & Deploy';
+                    const url = `${window.location.origin}/pages/user/${currentRepo}/index.html`;
+                    link.innerHTML = `Deployed successfully! <a href="${url}" target="_blank" class="underline">View Site</a>`;
+                }, 1000);
+            }, 500);
+        }
+
+        // --- Helpers ---
+        function getFileIcon(name, isDir) {
+            if (isDir) return 'https://cdn-icons-png.flaticon.com/512/716/716784.png';
+            const ext = name.split('.').pop().toLowerCase();
+            const icons = {
+                'js': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg',
+                'html': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg',
+                'css': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg',
+                'py': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg',
+                'lua': 'https://upload.wikimedia.org/wikipedia/commons/c/cf/Lua-logo-nolabel.svg',
+                'luau': 'https://upload.wikimedia.org/wikipedia/commons/c/cf/Lua-logo-nolabel.svg',
+                'json': 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/json/json-original.svg'
+            };
+            return icons[ext] || 'https://cdn-icons-png.flaticon.com/512/2991/2991112.png';
+        }
+
+        function getEditorMode(name) {
+            const ext = name.split('.').pop().toLowerCase();
+            const modes = { 'js': 'javascript', 'py': 'python', 'html': 'xml', 'css': 'css', 'lua': 'lua', 'luau': 'lua' };
+            return modes[ext] || 'javascript';
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function copyRawLink() {
+            const url = `${window.location.origin}/api/repos/${currentRepo}/raw?path=${currentPath}${editingFile}`;
+            navigator.clipboard.writeText(url);
+            alert('Raw link copied to clipboard!');
+        }
+
+        // --- Modal Logic ---
+        function openModal(id) {
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-backdrop').classList.add('hidden');
+            const modals = ['newRepoModal', 'newFileModal'];
+            modals.forEach(id => document.getElementById(id).classList.add('hidden'));
+        }
+
+        // Initial Load
+        showDashboard();
+    </script>
+</body>
+</html>
